@@ -5,15 +5,34 @@ import { useRouter } from 'next/navigation';
 import { auth, firestore } from '../firebaseConfig';
 import { signOut } from 'firebase/auth';
 import { collection, addDoc, getDocs } from 'firebase/firestore';
-import styles from './AdminPanel.module.css'; // Importa el archivo CSS Module
 
 const AdminPanel = () => {
+  // Listas predefinidas
+  const encargadosList = ["Bernyss", "Brayan", "Stephanie"];
+  const generoList = ["Hombre", "Mujer"];
+  const marcaList = ["Okey", "Columbia", "Unicreses"];
+  const turnoList = ["A", "B", "C"];
+  const tallaList = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"];
+
   const [user, setUser] = useState(null);
-  const [color, setColor] = useState('');
-  const [size, setSize] = useState('');
-  const [montoPagado, setMontoPagado] = useState('');
-  const [montoFaltante, setMontoFaltante] = useState('');
-  const [metodoPago, setMetodoPago] = useState('');
+  const [formData, setFormData] = useState({
+    persona: '',
+    encargadoPor: encargadosList[0], // Valor por defecto
+    pago: '',
+    fechaPedido: '',
+    turno: turnoList[0], // Valor por defecto
+    empresa: '',
+    colores: '',
+    marca: marcaList[0], // Valor por defecto
+    talla: tallaList[0], // Valor por defecto
+    genero: generoList[0], // Valor por defecto
+    faltantes: false,
+    compradas: false,
+    entregadas: false,
+    pagadas: false,
+    bordada: false,
+    comentarios: ''
+  });
   const [totalVentas, setTotalVentas] = useState(0);
   const router = useRouter();
 
@@ -34,7 +53,10 @@ const AdminPanel = () => {
         const ventasSnapshot = await getDocs(collection(firestore, 'Ventas'));
         let total = 0;
         ventasSnapshot.forEach((doc) => {
-          total += doc.data().monto_pagado;
+          const data = doc.data();
+          if (data.pago) {
+            total += parseFloat(data.pago);
+          }
         });
         setTotalVentas(total);
       } catch (err) {
@@ -54,96 +76,301 @@ const AdminPanel = () => {
     }
   };
 
-  const handleSaleSubmit = async (e) => {
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await addDoc(collection(firestore, 'Ventas'), {
-        color,
-        talla: size,
-        monto_pagado: parseFloat(montoPagado),
-        monto_faltante: parseFloat(montoFaltante),
-        metodo_pago: metodoPago,
-        fecha_pago: new Date(),
-        pagado: montoFaltante === '0',
+        ...formData,
+        fechaRegistro: new Date(),
       });
 
-      setColor('');
-      setSize('');
-      setMontoPagado('');
-      setMontoFaltante('');
-      setMetodoPago('');
-      alert('Venta registrada correctamente');
-      setTotalVentas(prevTotal => prevTotal + parseFloat(montoPagado));
+      setFormData({
+        persona: '',
+        encargadoPor: encargadosList[0],
+        pago: '',
+        fechaPedido: '',
+        turno: turnoList[0],
+        empresa: '',
+        colores: '',
+        marca: marcaList[0],
+        talla: tallaList[0],
+        genero: generoList[0],
+        faltantes: false,
+        compradas: false,
+        entregadas: false,
+        pagadas: false,
+        bordada: false,
+        comentarios: ''
+      });
+
+      alert('Pedido registrado correctamente');
+      if (formData.pago) {
+        setTotalVentas(prevTotal => prevTotal + parseFloat(formData.pago));
+      }
     } catch (err) {
-      console.error('Error al registrar la venta:', err);
+      console.error('Error al registrar el pedido:', err);
+      alert('Error al registrar el pedido');
     }
   };
 
   return (
-    <div className={styles.container}>
-      <h2 className={styles.header}>RxH Art Admin</h2>
+    <div className="p-6 max-w-4xl mx-auto">
+      <h2 className="text-2xl font-bold mb-4">RxH Art Admin</h2>
       {user ? (
         <>
-          <p>Bienvenido, {user.email}</p>
-          <button onClick={handleLogout} className={styles.button}>Salir</button>
+          <p className="mb-4">Bienvenido, {user.email}</p>
+          <button 
+            onClick={handleLogout}
+            className="bg-red-500 text-white px-4 py-2 rounded mb-6"
+          >
+            Salir
+          </button>
           
-          <h3>Registrar Venta</h3>
-          <form onSubmit={handleSaleSubmit}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Color:</label>
-              <input
-                type="text"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                required
-                className={styles.input}
+          <h3 className="text-xl font-semibold mb-4">Registrar Pedido</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-1">Persona:</label>
+                <input
+                  type="text"
+                  name="persona"
+                  value={formData.persona}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1">A quien se la encargo:</label>
+                <select
+                  name="encargadoPor"
+                  value={formData.encargadoPor}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded"
+                  required
+                >
+                  {encargadosList.map((encargado) => (
+                    <option key={encargado} value={encargado}>
+                      {encargado}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-1">Pago:</label>
+                <input
+                  type="number"
+                  name="pago"
+                  value={formData.pago}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1">Fecha de pedido:</label>
+                <input
+                  type="date"
+                  name="fechaPedido"
+                  value={formData.fechaPedido}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1">Turno:</label>
+                <select
+                  name="turno"
+                  value={formData.turno}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded"
+                  required
+                >
+                  {turnoList.map((turno) => (
+                    <option key={turno} value={turno}>
+                      {turno}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-1">Empresa:</label>
+                <input
+                  type="text"
+                  name="empresa"
+                  value={formData.empresa}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1">Colores:</label>
+                <input
+                  type="text"
+                  name="colores"
+                  value={formData.colores}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1">Marca:</label>
+                <select
+                  name="marca"
+                  value={formData.marca}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded"
+                  required
+                >
+                  {marcaList.map((marca) => (
+                    <option key={marca} value={marca}>
+                      {marca}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-1">Talla:</label>
+                <select
+                  name="talla"
+                  value={formData.talla}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded"
+                  required
+                >
+                  {tallaList.map((talla) => (
+                    <option key={talla} value={talla}>
+                      {talla}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-1">Género:</label>
+                <select
+                  name="genero"
+                  value={formData.genero}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded"
+                  required
+                >
+                  {generoList.map((genero) => (
+                    <option key={genero} value={genero}>
+                      {genero}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+              <div>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    name="faltantes"
+                    checked={formData.faltantes}
+                    onChange={handleInputChange}
+                    className="form-checkbox"
+                  />
+                  <span>¿Estas faltan?</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    name="compradas"
+                    checked={formData.compradas}
+                    onChange={handleInputChange}
+                    className="form-checkbox"
+                  />
+                  <span>¿Ya se compraron?</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    name="entregadas"
+                    checked={formData.entregadas}
+                    onChange={handleInputChange}
+                    className="form-checkbox"
+                  />
+                  <span>¿Ya se entregaron?</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    name="pagadas"
+                    checked={formData.pagadas}
+                    onChange={handleInputChange}
+                    className="form-checkbox"
+                  />
+                  <span>¿Ya se pagaron?</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    name="bordada"
+                    checked={formData.bordada}
+                    onChange={handleInputChange}
+                    className="form-checkbox"
+                  />
+                  <span>¿Ya se bordro?</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block mb-1">Comentarios:</label>
+              <textarea
+                name="comentarios"
+                value={formData.comentarios}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded"
+                rows="3"
               />
             </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Talla:</label>
-              <input
-                type="text"
-                value={size}
-                onChange={(e) => setSize(e.target.value)}
-                required
-                className={styles.input}
-              />
-            </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Monto Pagado:</label>
-              <input
-                type="number"
-                value={montoPagado}
-                onChange={(e) => setMontoPagado(e.target.value)}
-                required
-                className={styles.input}
-              />
-            </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Monto Faltante:</label>
-              <input
-                type="number"
-                value={montoFaltante}
-                onChange={(e) => setMontoFaltante(e.target.value)}
-                required
-                className={styles.input}
-              />
-            </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Método de Pago:</label>
-              <input
-                type="text"
-                value={metodoPago}
-                onChange={(e) => setMetodoPago(e.target.value)}
-                required
-                className={styles.input}
-              />
-            </div>
-            <button type="submit" className={styles.button}>Registrar Venta</button>
+
+            <button 
+              type="submit"
+              className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
+            >
+              Registrar Pedido
+            </button>
           </form>
 
-          <div className={styles.total}>
-            <h3>Total de Ventas Realizadas: ${totalVentas}</h3>
+          <div className="mt-6 p-4 bg-gray-100 rounded">
+            <h3 className="text-xl font-semibold">Total de Ventas: ${totalVentas}</h3>
           </div>
         </>
       ) : (
