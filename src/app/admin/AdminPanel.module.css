@@ -1,47 +1,55 @@
-/* AdminPanel.module.css */
 .container {
-    padding: 20px;
-    font-family: Arial, sans-serif;
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-gray-50;
+}
+
+.form-section {
+  @apply bg-white shadow-xl rounded-2xl p-6 md:p-8 space-y-6 border border-gray-100;
+}
+
+.form-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.form-input {
+  @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700 mb-2;
+}
+
+.checkbox-container {
+  @apply flex items-center space-x-2;
+}
+
+.checkbox-input {
+  @apply h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500;
+}
+
+.submit-button {
+  @apply w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-300;
+}
+
+.logout-button {
+  @apply inline-flex justify-center rounded-lg bg-red-600 py-2 px-4 text-sm font-semibold text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 transition duration-300;
+}
+
+.sales-summary {
+  @apply bg-gray-100 rounded-xl p-6 mt-8 text-center shadow-inner;
+}
+
+.sales-total {
+  @apply text-2xl font-bold text-gray-800;
+}
+
+@media (max-width: 640px) {
+  .form-grid {
+    @apply grid-cols-1;
   }
-  
-  .header {
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 20px;
-  }
-  
-  .formGroup {
-    margin-bottom: 10px;
-  }
-  
-  .label {
-    font-size: 16px;
-    font-weight: bold;
-  }
-  
-  .input {
-    padding: 8px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-  
-  .button {
-    padding: 10px 20px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  
-  .button:hover {
-    background-color: #45a049;
-  }
-  
-  .total {
-    margin-top: 20px;
-    font-size: 20px;
-    font-weight: bold;
-  }
-  
+}
+
+.title {
+  text-align: center;
+  text-transform: uppercase;
+  padding-bottom: 5px;
+}

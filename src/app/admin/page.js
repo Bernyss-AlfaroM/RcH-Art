@@ -5,27 +5,58 @@ import { useRouter } from 'next/navigation';
 import { auth, firestore } from '../firebaseConfig';
 import { signOut } from 'firebase/auth';
 import { collection, addDoc, getDocs } from 'firebase/firestore';
+import styles from './AdminPanel.module.css';
 
-const AdminPanel = () => {
-  // Listas predefinidas
-  const encargadosList = ["Bernyss", "Brayan", "Stephanie"];
-  const generoList = ["Hombre", "Mujer"];
-  const marcaList = ["Okey", "Columbia", "Unicreses"];
-  const turnoList = ["A", "B", "C"];
-  const tallaList = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"];
+export default function AdminPanel() {
+  // Predefined lists
+  const lists = {
+    encargados: ["Bernyss", "Brayan", "Stephanie"],
+    generos: ["Hombre", "Mujer"],
+    marcas: ["Okey", "Columbia", "Unicreses"],
+    turnos: ["A", "B", "C"],
+    tallas: ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"],
+    colores: [
+      "Vino",
+      "Vino tinto",
+      "Celeste Unicress",
+      "Celeste Ok",
+      "Rosado Uni",
+      "Fuscia OK",
+      "Fuscia Morado",
+      "Fuscia Uni",
+      "Morado",
+      "Lila",
+      "Negra",
+      "Gris Claro",
+      "Gris Oscuro",
+      "Amarillo",
+      "Verde Oscuro",
+      "Verde Claro",
+      "Rojo",
+      "Azul Navi",
+      "Azul Rey",
+      "Naranja",
+      "Turquesa",
+      "Jade",
+      "Beige",
+      "Blanca",
+      "Morado Uni",
+      "Coral"
+    ]
+  };
 
   const [user, setUser] = useState(null);
   const [formData, setFormData] = useState({
     persona: '',
-    encargadoPor: encargadosList[0], // Valor por defecto
+    encargadoPor: lists.encargados[0],
     pago: '',
     fechaPedido: '',
-    turno: turnoList[0], // Valor por defecto
+    turno: lists.turnos[0],
     empresa: '',
-    colores: '',
-    marca: marcaList[0], // Valor por defecto
-    talla: tallaList[0], // Valor por defecto
-    genero: generoList[0], // Valor por defecto
+    colores:lists.colores[0], // Explicitly added colors field
+    marca: lists.marcas[0],
+    talla: lists.tallas[0],
+    genero: lists.generos[0],
     faltantes: false,
     compradas: false,
     entregadas: false,
@@ -33,16 +64,13 @@ const AdminPanel = () => {
     bordada: false,
     comentarios: ''
   });
+
   const [totalVentas, setTotalVentas] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (!user) {
-        router.push('/login');
-      } else {
-        setUser(user);
-      }
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      currentUser ? setUser(currentUser) : router.push('/login');
     });
     return unsubscribe;
   }, [router]);
@@ -51,13 +79,10 @@ const AdminPanel = () => {
     const fetchTotalVentas = async () => {
       try {
         const ventasSnapshot = await getDocs(collection(firestore, 'Ventas'));
-        let total = 0;
-        ventasSnapshot.forEach((doc) => {
+        const total = ventasSnapshot.docs.reduce((acc, doc) => {
           const data = doc.data();
-          if (data.pago) {
-            total += parseFloat(data.pago);
-          }
-        });
+          return data.pago ? acc + parseFloat(data.pago) : acc;
+        }, 0);
         setTotalVentas(total);
       } catch (err) {
         console.error('Error al obtener las ventas:', err);
@@ -92,23 +117,19 @@ const AdminPanel = () => {
         fechaRegistro: new Date(),
       });
 
+      // Reset form with default values
       setFormData({
-        persona: '',
-        encargadoPor: encargadosList[0],
-        pago: '',
-        fechaPedido: '',
-        turno: turnoList[0],
-        empresa: '',
-        colores: '',
-        marca: marcaList[0],
-        talla: tallaList[0],
-        genero: generoList[0],
-        faltantes: false,
-        compradas: false,
-        entregadas: false,
-        pagadas: false,
-        bordada: false,
-        comentarios: ''
+        ...Object.fromEntries(
+          Object.entries(formData).map(([key, val]) => 
+            key === 'encargadoPor' ? [key, lists.encargados[0]] :
+            key === 'turno' ? [key, lists.turnos[0]] :
+            key === 'marca' ? [key, lists.marcas[0]] :
+            key === 'talla' ? [key, lists.tallas[0]] :
+            key === 'genero' ? [key, lists.generos[0]] :
+            typeof val === 'boolean' ? [key, false] :
+            [key, '']
+          )
+        )
       });
 
       alert('Pedido registrado correctamente');
@@ -122,262 +143,240 @@ const AdminPanel = () => {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">RxH Art Admin</h2>
-      {user ? (
-        <>
-          <p className="mb-4">Bienvenido, {user.email}</p>
-          <button 
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-4 py-2 rounded mb-6"
-          >
-            Salir
-          </button>
-          
-          <h3 className="text-xl font-semibold mb-4">Registrar Pedido</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className={styles.container}>
+      <div className={styles['form-section']}>
+        <h2 className={styles.title}>Agregar prenda</h2>
+        
+        {user ? (
+          <>
+            
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className={styles['form-grid']}>
+                {/* Static fields including Colores */}
+                <div>
+                  <label htmlFor="persona" className={styles['form-label']}>
+                    Persona
+                  </label>
+                  <input
+                    type="text"
+                    name="persona"
+                    value={formData.persona}
+                    onChange={handleInputChange}
+                    className={styles['form-input']}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="encargadoPor" className={styles['form-label']}>
+                    A quien se la encargo
+                  </label>
+                  <select
+                    name="encargadoPor"
+                    value={formData.encargadoPor}
+                    onChange={handleInputChange}
+                    className={styles['form-input']}
+                    required
+                  >
+                    {lists.encargados.map((encargado) => (
+                      <option key={encargado} value={encargado}>
+                        {encargado}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="pago" className={styles['form-label']}>
+                    Pago
+                  </label>
+                  <input
+                    type="number"
+                    name="pago"
+                    value={formData.pago}
+                    onChange={handleInputChange}
+                    className={styles['form-input']}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="fechaPedido" className={styles['form-label']}>
+                    Fecha de pedido
+                  </label>
+                  <input
+                    type="date"
+                    name="fechaPedido"
+                    value={formData.fechaPedido}
+                    onChange={handleInputChange}
+                    className={styles['form-input']}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="turno" className={styles['form-label']}>
+                    Turno
+                  </label>
+                  <select
+                    name="turno"
+                    value={formData.turno}
+                    onChange={handleInputChange}
+                    className={styles['form-input']}
+                    required
+                  >
+                    {lists.turnos.map((turno) => (
+                      <option key={turno} value={turno}>
+                        {turno}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="empresa" className={styles['form-label']}>
+                    Empresa
+                  </label>
+                  <input
+                    type="text"
+                    name="empresa"
+                    value={formData.empresa}
+                    onChange={handleInputChange}
+                    className={styles['form-input']}
+                    required
+                  />
+                </div>
+
+                {/* Explicitly added Colores field */}
+                <div>
+                  <label htmlFor="colores" className={styles['form-label']}>
+                    Colores
+                  </label>
+
+                  <select
+                    type="text"
+                    name="colores"
+                    value={formData.colores}
+                    onChange={handleInputChange}
+                    className={styles['form-input']}
+                    required
+                    >
+                    {lists.colores.map((colores) => (
+                      <option key={colores} value={colores}>
+                        {colores}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="marca" className={styles['form-label']}>
+                    Marca
+                  </label>
+                  <select
+                    name="marca"
+                    value={formData.marca}
+                    onChange={handleInputChange}
+                    className={styles['form-input']}
+                    required
+                  >
+                    {lists.marcas.map((marca) => (
+                      <option key={marca} value={marca}>
+                        {marca}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="talla" className={styles['form-label']}>
+                    Talla
+                  </label>
+                  <select
+                    name="talla"
+                    value={formData.talla}
+                    onChange={handleInputChange}
+                    className={styles['form-input']}
+                    required
+                  >
+                    {lists.tallas.map((talla) => (
+                      <option key={talla} value={talla}>
+                        {talla}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="genero" className={styles['form-label']}>
+                    Género
+                  </label>
+                  <select
+                    name="genero"
+                    value={formData.genero}
+                    onChange={handleInputChange}
+                    className={styles['form-input']}
+                    required
+                  >
+                    {lists.generos.map((genero) => (
+                      <option key={genero} value={genero}>
+                        {genero}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Checkboxes section */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                {['faltantes', 'compradas', 'entregadas', 'pagadas', 'bordada'].map((checkbox) => (
+                  <div key={checkbox} className={styles['checkbox-container']}>
+                    <input
+                      type="checkbox"
+                      name={checkbox}
+                      checked={formData[checkbox]}
+                      onChange={handleInputChange}
+                      className={styles['checkbox-input']}
+                    />
+                    <span className="text-sm text-gray-700">
+                      {checkbox === 'bordada' ? '¿Ya se bordó?' : `¿${checkbox}?`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
               <div>
-                <label className="block mb-1">Persona:</label>
-                <input
-                  type="text"
-                  name="persona"
-                  value={formData.persona}
+                <label htmlFor="comentarios" className={styles['form-label']}>
+                  Comentarios
+                </label>
+                <textarea
+                  name="comentarios"
+                  value={formData.comentarios}
                   onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
+                  className={styles['form-input']}
+                  rows="3"
                 />
               </div>
 
-              <div>
-                <label className="block mb-1">A quien se la encargo:</label>
-                <select
-                  name="encargadoPor"
-                  value={formData.encargadoPor}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                >
-                  {encargadosList.map((encargado) => (
-                    <option key={encargado} value={encargado}>
-                      {encargado}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block mb-1">Pago:</label>
-                <input
-                  type="number"
-                  name="pago"
-                  value={formData.pago}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block mb-1">Fecha de pedido:</label>
-                <input
-                  type="date"
-                  name="fechaPedido"
-                  value={formData.fechaPedido}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block mb-1">Turno:</label>
-                <select
-                  name="turno"
-                  value={formData.turno}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                >
-                  {turnoList.map((turno) => (
-                    <option key={turno} value={turno}>
-                      {turno}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block mb-1">Empresa:</label>
-                <input
-                  type="text"
-                  name="empresa"
-                  value={formData.empresa}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block mb-1">Colores:</label>
-                <input
-                  type="text"
-                  name="colores"
-                  value={formData.colores}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block mb-1">Marca:</label>
-                <select
-                  name="marca"
-                  value={formData.marca}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                >
-                  {marcaList.map((marca) => (
-                    <option key={marca} value={marca}>
-                      {marca}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block mb-1">Talla:</label>
-                <select
-                  name="talla"
-                  value={formData.talla}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                >
-                  {tallaList.map((talla) => (
-                    <option key={talla} value={talla}>
-                      {talla}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block mb-1">Género:</label>
-                <select
-                  name="genero"
-                  value={formData.genero}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                >
-                  {generoList.map((genero) => (
-                    <option key={genero} value={genero}>
-                      {genero}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <button 
+                type="submit"
+                className={styles['submit-button']}
+              >
+                Registrar Pedido
+              </button>
+            </form>
+{/*
+            <div className={styles['sales-summary']}>
+              <h3 className={styles['sales-total']}>
+                Total de Ventas: ${totalVentas.toLocaleString()}
+              </h3>
             </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-              <div>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    name="faltantes"
-                    checked={formData.faltantes}
-                    onChange={handleInputChange}
-                    className="form-checkbox"
-                  />
-                  <span>¿Estas faltan?</span>
-                </label>
-              </div>
-
-              <div>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    name="compradas"
-                    checked={formData.compradas}
-                    onChange={handleInputChange}
-                    className="form-checkbox"
-                  />
-                  <span>¿Ya se compraron?</span>
-                </label>
-              </div>
-
-              <div>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    name="entregadas"
-                    checked={formData.entregadas}
-                    onChange={handleInputChange}
-                    className="form-checkbox"
-                  />
-                  <span>¿Ya se entregaron?</span>
-                </label>
-              </div>
-
-              <div>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    name="pagadas"
-                    checked={formData.pagadas}
-                    onChange={handleInputChange}
-                    className="form-checkbox"
-                  />
-                  <span>¿Ya se pagaron?</span>
-                </label>
-              </div>
-
-              <div>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    name="bordada"
-                    checked={formData.bordada}
-                    onChange={handleInputChange}
-                    className="form-checkbox"
-                  />
-                  <span>¿Ya se bordro?</span>
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <label className="block mb-1">Comentarios:</label>
-              <textarea
-                name="comentarios"
-                value={formData.comentarios}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                rows="3"
-              />
-            </div>
-
-            <button 
-              type="submit"
-              className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
-            >
-              Registrar Pedido
-            </button>
-          </form>
-
-          <div className="mt-6 p-4 bg-gray-100 rounded">
-            <h3 className="text-xl font-semibold">Total de Ventas: ${totalVentas}</h3>
-          </div>
-        </>
-      ) : (
-        <p>Cargando...</p>
-      )}
+*/}
+          </>
+        ) : (
+          <p className="text-center text-gray-500">Cargando...</p>
+        )}
+      </div>
     </div>
   );
-};
-
-export default AdminPanel;
+}

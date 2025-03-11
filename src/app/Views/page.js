@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { auth, firestore } from '../firebaseConfig';
 import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
+import styles from './DataTableView.module.css';
 
 const DataTableView = () => {
   const [pedidos, setPedidos] = useState([]);
@@ -48,56 +49,54 @@ const DataTableView = () => {
   }, [router]);
 
   useEffect(() => {
-  const fetchPedidos = async () => {
-    try {
-      setLoading(true);
-      const pedidosSnapshot = await getDocs(collection(firestore, 'Ventas'));
-      const pedidosData = pedidosSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          fechaPedido: formatDate(data.fechaPedido),
-          faltantes: !!data.faltantes,
-          compradas: !!data.compradas,
-          pagadas: !!data.pagadas,
-          bordada: !!data.bordada,
-          entregada: !!data.entregada,
-          persona: data.persona || '',
-          encargadoPor: data.encargadoPor || encargadosList[0],
-          pago: data.pago || '',
-          turno: data.turno || turnoList[0],
-          empresa: data.empresa || '',
-          colores: data.colores || '',
-          marca: data.marca || marcaList[0],
-          talla: data.talla || tallaList[0],
-          genero: data.genero || generoList[0],
-          comentarios: data.comentarios || ''
-        };
-      });
-      setPedidos(pedidosData);
-    } catch (error) {
-      console.error('Error al obtener los pedidos:', error);
-      alert('Error al cargar los datos');
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchPedidos();
+    const fetchPedidos = async () => {
+      try {
+        setLoading(true);
+        const pedidosSnapshot = await getDocs(collection(firestore, 'Ventas'));
+        const pedidosData = pedidosSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            fechaPedido: formatDate(data.fechaPedido),
+            faltantes: !!data.faltantes,
+            compradas: !!data.compradas,
+            pagadas: !!data.pagadas,
+            bordada: !!data.bordada,
+            entregada: !!data.entregada,
+            persona: data.persona || '',
+            encargadoPor: data.encargadoPor || encargadosList[0],
+            pago: data.pago || '',
+            turno: data.turno || turnoList[0],
+            empresa: data.empresa || '',
+            colores: data.colores || '',
+            marca: data.marca || marcaList[0],
+            talla: data.talla || tallaList[0],
+            genero: data.genero || generoList[0],
+            comentarios: data.comentarios || ''
+          };
+        });
+        setPedidos(pedidosData);
+      } catch (error) {
+        console.error('Error al obtener los pedidos:', error);
+        alert('Error al cargar los datos');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPedidos();
   }, []);
 
-  
-
-  const getRowColor = (pedido) => {
-    if (pedido.faltantes) return 'bg-red-200';
-    if (pedido.compradas) return 'bg-yellow-200';
-    if (pedido.pagadas) return 'bg-blue-200';
-    if (pedido.bordada) return 'bg-purple-200';
-    if (pedido.entregada) return 'bg-green-200';
+  const getRowStatusClass = (pedido) => {
+    if (pedido.faltantes) return styles.statusRed;
+    if (pedido.compradas) return styles.statusYellow;
+    if (pedido.pagadas) return styles.statusBlue;
+    if (pedido.bordada) return styles.statusPurple;
+    if (pedido.entregada) return styles.statusGreen;
     return '';
-     };
-  // Función para eliminar un pedido
+  };
   
+  // Función para eliminar un pedido
   const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este pedido?')) {
       try {
@@ -133,11 +132,13 @@ const DataTableView = () => {
         fechaPedido: editForm.fechaPedido || '',
         faltantes: !!editForm.faltantes,
         compradas: !!editForm.compradas,
-        pagadas: !!editForm.pagadas
+        pagadas: !!editForm.pagadas,
+        bordada: !!editForm.bordada,
+        entregada: !!editForm.entregada
       };
       await updateDoc(pedidoRef, updateData);
       setPedidos(pedidos.map(pedido => 
-        pedido.id === editingId ? updateData : pedido
+        pedido.id === editingId ? {...pedido, ...updateData} : pedido
       ));
       setEditingId(null);
       alert('Pedido actualizado correctamente');
@@ -174,7 +175,7 @@ const DataTableView = () => {
   });
 
   if (loading) {
-    return <div className="p-6 text-center">Cargando datos...</div>;
+    return <div className={styles.loadingContainer}>Cargando datos...</div>;
   }
 
   return (
@@ -186,16 +187,16 @@ const DataTableView = () => {
         <input
           type="text"
           placeholder="Buscar por persona, empresa o encargado..."
-          className="w-full p-2 border rounded"
+          className={styles.dataTableSearch}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
       {/* Tabla de datos */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border rounded-lg">
-          <thead className="bg-gray-50">
+      <div className={styles.dataTableContainer}>
+        <table className={styles.dataTable}>
+          <thead className={styles.dataTableHeader}>
             <tr>
               {[
                 'Persona', 'Encargado', 'Pago', 'Fecha', 'Turno', 'Empresa',
@@ -204,7 +205,7 @@ const DataTableView = () => {
                 <th 
                   key={header}
                   onClick={() => handleSort(header.toLowerCase())}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="cursor-pointer hover:bg-gray-200"
                 >
                   {header}
                   {sortConfig.key === header.toLowerCase() && (
@@ -214,9 +215,10 @@ const DataTableView = () => {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody>
             {filteredPedidos.map((pedido) => (
-              <tr key={pedido.id} className="hover:bg-gray-50">
+              <tr key={pedido.id} className={styles.dataTableRow}>
+
                 {editingId === pedido.id ? (
                   <>
                     <td className="px-6 py-4">
@@ -225,7 +227,7 @@ const DataTableView = () => {
                         name="persona"
                         value={editForm.persona}
                         onChange={handleEditChange}
-                        className="w-full p-1 border rounded"
+                        className={styles.formInput}
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -233,7 +235,7 @@ const DataTableView = () => {
                         name="encargadoPor"
                         value={editForm.encargadoPor}
                         onChange={handleEditChange}
-                        className="w-full p-1 border rounded"
+                        className={styles.formSelect}
                       >
                         {encargadosList.map(enc => (
                           <option key={enc} value={enc}>{enc}</option>
@@ -246,7 +248,7 @@ const DataTableView = () => {
                         name="pago"
                         value={editForm.pago}
                         onChange={handleEditChange}
-                        className="w-full p-1 border rounded"
+                        className={styles.formInput}
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -255,7 +257,7 @@ const DataTableView = () => {
                         name="fechaPedido"
                         value={editForm.fechaPedido}
                         onChange={handleEditChange}
-                        className="w-full p-1 border rounded"
+                        className={styles.formInput}
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -263,7 +265,7 @@ const DataTableView = () => {
                         name="turno"
                         value={editForm.turno}
                         onChange={handleEditChange}
-                        className="w-full p-1 border rounded"
+                        className={styles.formSelect}
                       >
                         {turnoList.map(turno => (
                           <option key={turno} value={turno}>{turno}</option>
@@ -276,7 +278,7 @@ const DataTableView = () => {
                         name="empresa"
                         value={editForm.empresa}
                         onChange={handleEditChange}
-                        className="w-full p-1 border rounded"
+                        className={styles.formInput}
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -285,7 +287,7 @@ const DataTableView = () => {
                         name="colores"
                         value={editForm.colores}
                         onChange={handleEditChange}
-                        className="w-full p-1 border rounded"
+                        className={styles.formInput}
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -293,7 +295,7 @@ const DataTableView = () => {
                         name="marca"
                         value={editForm.marca}
                         onChange={handleEditChange}
-                        className="w-full p-1 border rounded"
+                        className={styles.formSelect}
                       >
                         {marcaList.map(marca => (
                           <option key={marca} value={marca}>{marca}</option>
@@ -305,7 +307,7 @@ const DataTableView = () => {
                         name="talla"
                         value={editForm.talla}
                         onChange={handleEditChange}
-                        className="w-full p-1 border rounded"
+                        className={styles.formSelect}
                       >
                         {tallaList.map(talla => (
                           <option key={talla} value={talla}>{talla}</option>
@@ -317,7 +319,7 @@ const DataTableView = () => {
                         name="genero"
                         value={editForm.genero}
                         onChange={handleEditChange}
-                        className="w-full p-1 border rounded"
+                        className={styles.formSelect}
                       >
                         {generoList.map(genero => (
                           <option key={genero} value={genero}>{genero}</option>
@@ -332,6 +334,7 @@ const DataTableView = () => {
                             name="faltantes"
                             checked={editForm.faltantes}
                             onChange={handleEditChange}
+                            className={styles.formCheckbox}
                           />
                           <span className="ml-2">Faltante</span>
                         </label>
@@ -341,6 +344,7 @@ const DataTableView = () => {
                             name="compradas"
                             checked={editForm.compradas}
                             onChange={handleEditChange}
+                            className={styles.formCheckbox}
                           />
                           <span className="ml-2">Comprada</span>
                         </label>
@@ -350,43 +354,43 @@ const DataTableView = () => {
                             name="pagadas"
                             checked={editForm.pagadas}
                             onChange={handleEditChange}
+                            className={styles.formCheckbox}
                           />
                           <span className="ml-2">Pagada</span>
                         </label>
-
                         <label className="flex items-center">
                           <input
                             type="checkbox"
                             name="bordada"
                             checked={editForm.bordada}
                             onChange={handleEditChange}
+                            className={styles.formCheckbox}
                           />
-                          <span className="ml-2">bordada</span>
+                          <span className="ml-2">Bordada</span>
                         </label>
-
                         <label className="flex items-center">
                           <input
                             type="checkbox"
                             name="entregada"
                             checked={editForm.entregada}
                             onChange={handleEditChange}
+                            className={styles.formCheckbox}
                           />
-                          <span className="ml-2">entregada</span>
+                          <span className="ml-2">Entregada</span>
                         </label>
-                        
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex space-x-2">
                         <button
                           onClick={handleEditSubmit}
-                          className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                          className={`${styles.button} ${styles.buttonGreen}`}
                         >
                           Guardar
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
-                          className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600"
+                          className={`${styles.button} ${styles.buttonGray}`}
                         >
                           Cancelar
                         </button>
@@ -397,7 +401,7 @@ const DataTableView = () => {
                   <>
                     <td className="px-6 py-4">{pedido.persona}</td>
                     <td className="px-6 py-4">{pedido.encargadoPor}</td>
-                    <td className="px-6 py-4">${pedido.pago}</td>
+                    <td className="px-6 py-4">₡{pedido.pago}</td>
                     <td className="px-6 py-4">{pedido.fechaPedido}</td>
                     <td className="px-6 py-4">{pedido.turno}</td>
                     <td className="px-6 py-4">{pedido.empresa}</td>
@@ -405,26 +409,26 @@ const DataTableView = () => {
                     <td className="px-6 py-4">{pedido.marca}</td>
                     <td className="px-6 py-4">{pedido.talla}</td>
                     <td className="px-6 py-4">{pedido.genero}</td>
-                    <td className={`px-6 py-4 ${getRowColor(pedido)}`}>
+                    <td className={`px-6 py-4 ${getRowStatusClass(pedido)}`}>
                       <div className="space-y-1">
-                        {pedido.faltantes && <span className="text-red-500">• Faltante</span>}
-                        {pedido.compradas && <span className="text-green-500">• Comprada</span>}
-                        {pedido.pagadas && <span className="text-blue-500">• Pagada</span>}
-                        {pedido.bordada && <span className="text-blue-500">• bordada</span>}
-                        {pedido.entregada && <span className="text-blue-500">• entregada</span>}
+                        {pedido.faltantes && <span className={styles.textRed}> • Faltante</span>}
+                        {pedido.compradas && <span className={styles.textGreen}> • Comprada</span>}
+                        {pedido.pagadas && <span className={styles.textBlue}> • Pagada</span>}
+                        {pedido.bordada && <span className={styles.textBlue}> • Bordada</span>}
+                        {pedido.entregada && <span className={styles.textGreen}> • Entregada</span>}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex space-x-2">
-                      <button
+                        <button
                           onClick={() => startEditing(pedido)}
-                          className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                          className={`${styles.button} ${styles.buttonBlue}`}
                         >
                           Editar
                         </button>
                         <button
                           onClick={() => handleDelete(pedido.id)}
-                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                          className={`${styles.button} ${styles.buttonRed}`}
                         >
                           Eliminar
                         </button>

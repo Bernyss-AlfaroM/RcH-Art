@@ -1,0 +1,223 @@
+/* Modern Data Table Styles */
+
+/* Base styling */
+.dataTableContainer {
+  width: 100%;
+  overflow-x: auto;
+  background: #ffffff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  margin: 1.5rem 0;
+}
+
+/* Search input */
+.dataTableSearch {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.dataTableSearch:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+/* Table styling */
+.dataTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.dataTableHeader {
+  background-color: #f9fafb;
+}
+
+.dataTable th {
+  color: #4b5563;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s;
+  position: sticky;
+  top: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dataTable th:hover {
+  background-color: #f3f4f6;
+}
+
+.dataTable td {
+  padding: 1rem 1.25rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #e5e7eb;
+  color: #1f2937;
+  font-size: 0.95rem;
+}
+
+.dataTableRow {
+  transition: background-color 0.15s;
+}
+
+.dataTableRow:hover {
+  background-color: #f9fafb;
+}
+
+/* Status colors - more subtle with better contrast */
+.statusRed { 
+  background-color: #fee2e2; 
+  border-left: 3px solid #ef4444;
+}
+.statusYellow { 
+  background-color: #fef3c7; 
+  border-left: 3px solid #f59e0b;
+}
+.statusBlue { 
+  background-color: #dbeafe; 
+  border-left: 3px solid #3b82f6;
+}
+.statusPurple { 
+  background-color: #ede9fe; 
+  border-left: 3px solid #8b5cf6;
+}
+.statusGreen { 
+  background-color: #dcfce7; 
+  border-left: 3px solid #22c55e;
+}
+
+/* Button styling */
+.button {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  border: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+/* Edit button */
+.buttonBlue {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.buttonBlue:hover {
+  background-color: #2563eb;
+}
+
+/* Save button */
+.buttonGreen {
+  background-color: #10b981;
+  color: white;
+}
+
+.buttonGreen:hover {
+  background-color: #059669;
+}
+
+/* Delete button */
+.buttonRed {
+  background-color: #ef4444;
+  color: white;
+}
+
+.buttonRed:hover {
+  background-color: #dc2626;
+}
+
+/* Cancel button */
+.buttonGray {
+  background-color: #6b7280;
+  color: white;
+}
+
+.buttonGray:hover {
+  background-color: #4b5563;
+}
+
+/* Form elements styling */
+.formInput {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #f9fafb;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  background-color: #ffffff;
+}
+
+.formSelect {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #f9fafb;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.formSelect:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  background-color: #ffffff;
+}
+
+.formCheckbox {
+  accent-color: #3b82f6;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* Status text indicators */
+.textRed { color: #ef4444; }
+.textGreen { color: #10b981; }
+.textBlue { color: #3b82f6; }
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .dataTable th, 
+  .dataTable td {
+    padding: 0.75rem 0.75rem;
+    font-size: 0.85rem;
+  }
+  
+  .button {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Loading state */
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 150px;
+  width: 100%;
+  color: #6b7280;
+  font-size: 1.1rem;
+}

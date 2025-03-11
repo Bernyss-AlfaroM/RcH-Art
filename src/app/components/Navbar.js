@@ -46,7 +46,7 @@ const Navbar = () => {
         <div className="flex justify-between h-16">
           <div className="flex space-x-7">
             <Link href="/" className="flex items-center py-4 px-2">
-              <span className="font-semibold text-gray-500 text-lg">Logo</span>
+              <span className="font-semibold text-gray-500 text-lg">RxH Art Control de ventas</span>
             </Link>
           </div>
 

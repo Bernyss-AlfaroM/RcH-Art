@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { auth, firestore, collection, doc, setDoc } from '../firebaseConfig'; // Asegúrate de que las funciones estén importadas correctamente
 import { createUserWithEmailAndPassword } from 'firebase/auth'; 
 import { useRouter } from 'next/navigation';
+import styles from './Register.module.css'; // Importa el CSS
 
 const Register = () => {
   const [email, setEmail] = useState('');
@@ -30,23 +31,27 @@ const Register = () => {
   };
 
   return (
-    <form onSubmit={handleRegister}>
-      <h2>Register</h2>
+    <div className={styles.container}>
+    <form onSubmit={handleRegister} className={styles.form}>
+      <h2 className={styles.title}>Register</h2>
       <input 
         type="email" 
         placeholder="Email" 
         value={email} 
         onChange={(e) => setEmail(e.target.value)} 
+        className={styles.input}
       />
       <input 
         type="password" 
         placeholder="Password" 
         value={password} 
         onChange={(e) => setPassword(e.target.value)} 
+        className={styles.input}
       />
-      {error && <p>{error}</p>}
-      <button type="submit">Registar</button>
+      {error && <p className={styles.error}>{error}</p>}
+      <button type="submit"className={styles.button}>Registar</button>
     </form>
+  </div>
   );
 };
 
