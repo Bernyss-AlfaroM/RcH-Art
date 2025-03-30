@@ -76,26 +76,71 @@
   background-color: #f9fafb;
 }
 
-/* Status colors - more subtle with better contrast */
-.statusRed { 
-  background-color: #fee2e2; 
-  border-left: 3px solid #ef4444;
+/* Estilos de estado para las celdas */
+.statusRed {
+  background-color: rgba(235, 18, 18, 0.568);
 }
-.statusYellow { 
-  background-color: #fef3c7; 
-  border-left: 3px solid #f59e0b;
+
+.statusYellow {
+  background-color: rgba(255, 200, 0, 0.15);
 }
-.statusBlue { 
-  background-color: #dbeafe; 
-  border-left: 3px solid #3b82f6;
+
+.statusBlue {
+  background-color: rgba(19, 221, 86, 0.63);
 }
-.statusPurple { 
-  background-color: #ede9fe; 
-  border-left: 3px solid #8b5cf6;
+
+.statusPurple {
+  background-color: rgba(128, 0, 128, 0.15);
 }
-.statusGreen { 
-  background-color: #dcfce7; 
-  border-left: 3px solid #22c55e;
+
+.statusGreen {
+  background-color: rgba(32, 115, 209, 0.15);
+}
+
+.statusPending {
+  background-color: rgba(224, 110, 16, 0.637);
+}
+
+/* Animación de parpadeo para estados Pendiente y Faltante */
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+.blinkAnimation {
+  animation: blink 1.5s infinite;
+}
+
+/* Estilos para inputs y selects dentro de celdas coloreadas */
+.statusRed select, .statusRed input, .statusRed option {
+  background-color: rgba(255, 0, 0, 0.05);
+  border-color: rgba(255, 0, 0, 0.3) !important;
+}
+
+.statusYellow select, .statusYellow input, .statusYellow option {
+  background-color: rgba(255, 200, 0, 0.05);
+  border-color: rgba(255, 200, 0, 0.3) !important;
+}
+
+.statusBlue select, .statusBlue input, .statusBlue option {
+  background-color: rgba(0, 100, 255, 0.05);
+  border-color: rgba(0, 100, 255, 0.3) !important;
+}
+
+.statusPurple select, .statusPurple input, .statusPurple option {
+  background-color: rgba(128, 0, 128, 0.05);
+  border-color: rgba(128, 0, 128, 0.3) !important;
+}
+
+.statusGreen select, .statusGreen input, .statusGreen option {
+  background-color: rgba(0, 255, 0, 0.05);
+  border-color: rgba(0, 255, 0, 0.3) !important;
+}
+
+.statusPending select, .statusPending input, .statusPending option {
+  background-color: rgba(128, 128, 128, 0.05);
+  border-color: rgba(128, 128, 128, 0.3) !important;
 }
 
 /* Button styling */

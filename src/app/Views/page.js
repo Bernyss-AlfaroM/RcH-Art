@@ -21,6 +21,9 @@ const DataTableView = () => {
   const marcaList = ["Okey", "Columbia", "Unicreses"];
   const turnoList = ["A", "B", "C"];
   const tallaList = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"];
+  
+  // Lista de estados (nuevo)
+  const estadosList = ["Pendiente", "Faltante", "Comprada", "Pagada", "Bordada", "Entregada"];
 
   // Función para formatear fechas
   const [user, setUser] = useState(null);
@@ -55,15 +58,20 @@ const DataTableView = () => {
         const pedidosSnapshot = await getDocs(collection(firestore, 'Ventas'));
         const pedidosData = pedidosSnapshot.docs.map(doc => {
           const data = doc.data();
+          
+          // Determinar el estado actual basado en los campos existentes
+          let estado = "Pendiente";
+          if (data.entregada) estado = "Entregada";
+          else if (data.bordada) estado = "Bordada";
+          else if (data.pagadas) estado = "Pagada";
+          else if (data.compradas) estado = "Comprada";
+          else if (data.faltantes) estado = "Faltante";
+          
           return {
             id: doc.id,
             ...data,
             fechaPedido: formatDate(data.fechaPedido),
-            faltantes: !!data.faltantes,
-            compradas: !!data.compradas,
-            pagadas: !!data.pagadas,
-            bordada: !!data.bordada,
-            entregada: !!data.entregada,
+            estado: data.estado || estado, // Usar el nuevo campo estado o derivarlo
             persona: data.persona || '',
             encargadoPor: data.encargadoPor || encargadosList[0],
             pago: data.pago || '',
@@ -87,13 +95,22 @@ const DataTableView = () => {
     fetchPedidos();
   }, []);
 
-  const getRowStatusClass = (pedido) => {
-    if (pedido.faltantes) return styles.statusRed;
-    if (pedido.compradas) return styles.statusYellow;
-    if (pedido.pagadas) return styles.statusBlue;
-    if (pedido.bordada) return styles.statusPurple;
-    if (pedido.entregada) return styles.statusGreen;
-    return '';
+  // Nueva función para obtener la clase de estado
+  const getEstadoClass = (estado) => {
+    switch (estado) {
+      case 'Faltante': return styles.statusRed;
+      case 'Comprada': return styles.statusYellow;
+      case 'Pagada': return styles.statusBlue;
+      case 'Bordada': return styles.statusPurple;
+      case 'Entregada': return styles.statusGreen;
+      case 'Pendiente': return styles.statusPending;
+      default: return '';
+    }
+  };
+
+  // Función para determinar si un estado debe parpadear
+  const shouldBlink = (estado) => {
+    return estado === 'Pendiente' || estado === 'Faltante';
   };
   
   // Función para eliminar un pedido
@@ -117,25 +134,30 @@ const DataTableView = () => {
   };
 
   const handleEditChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setEditForm(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     }));
   };
 
   const handleEditSubmit = async () => {
     try {
       const pedidoRef = doc(firestore, 'Ventas', editingId);
+      
+      // Preparar datos para actualizar en Firestore
       const updateData = {
         ...editForm,
         fechaPedido: editForm.fechaPedido || '',
-        faltantes: !!editForm.faltantes,
-        compradas: !!editForm.compradas,
-        pagadas: !!editForm.pagadas,
-        bordada: !!editForm.bordada,
-        entregada: !!editForm.entregada
+        estado: editForm.estado || 'Pendiente',
+        // Actualizar los campos antiguos para compatibilidad con código existente
+        faltantes: editForm.estado === 'Faltante',
+        compradas: editForm.estado === 'Comprada',
+        pagadas: editForm.estado === 'Pagada',
+        bordada: editForm.estado === 'Bordada',
+        entregada: editForm.estado === 'Entregada'
       };
+      
       await updateDoc(pedidoRef, updateData);
       setPedidos(pedidos.map(pedido => 
         pedido.id === editingId ? {...pedido, ...updateData} : pedido
@@ -221,13 +243,13 @@ const DataTableView = () => {
 
                 {editingId === pedido.id ? (
                   <>
-                    <td className="px-6 py-4">
+                    <td className={`px-6 py-4 ${getEstadoClass(editForm.estado)}`}>
                       <input
                         type="text"
                         name="persona"
                         value={editForm.persona}
                         onChange={handleEditChange}
-                        className={styles.formInput}
+                        className={`${styles.formInput} ${shouldBlink(editForm.estado) ? styles.blinkAnimation : ''}`}
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -326,59 +348,17 @@ const DataTableView = () => {
                         ))}
                       </select>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col space-y-2">
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            name="faltantes"
-                            checked={editForm.faltantes}
-                            onChange={handleEditChange}
-                            className={styles.formCheckbox}
-                          />
-                          <span className="ml-2">Faltante</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            name="compradas"
-                            checked={editForm.compradas}
-                            onChange={handleEditChange}
-                            className={styles.formCheckbox}
-                          />
-                          <span className="ml-2">Comprada</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            name="pagadas"
-                            checked={editForm.pagadas}
-                            onChange={handleEditChange}
-                            className={styles.formCheckbox}
-                          />
-                          <span className="ml-2">Pagada</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            name="bordada"
-                            checked={editForm.bordada}
-                            onChange={handleEditChange}
-                            className={styles.formCheckbox}
-                          />
-                          <span className="ml-2">Bordada</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            name="entregada"
-                            checked={editForm.entregada}
-                            onChange={handleEditChange}
-                            className={styles.formCheckbox}
-                          />
-                          <span className="ml-2">Entregada</span>
-                        </label>
-                      </div>
+                    <td className={`px-6 py-4 ${getEstadoClass(editForm.estado)} ${shouldBlink(editForm.estado) ? styles.blinkAnimation : ''}`}>
+                      <select
+                        name="estado"
+                        value={editForm.estado}
+                        onChange={handleEditChange}
+                        className={styles.formSelect}
+                      >
+                        {estadosList.map(estado => (
+                          <option key={estado} value={estado}>{estado}</option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex space-x-2">
@@ -399,26 +379,18 @@ const DataTableView = () => {
                   </>
                 ) : (
                   <>
-                    <td className="px-6 py-4">{pedido.persona}</td>
-                    <td className="px-6 py-4">{pedido.encargadoPor}</td>
-                    <td className="px-6 py-4">₡{pedido.pago}</td>
-                    <td className="px-6 py-4">{pedido.fechaPedido}</td>
-                    <td className="px-6 py-4">{pedido.turno}</td>
-                    <td className="px-6 py-4">{pedido.empresa}</td>
-                    <td className="px-6 py-4">{pedido.colores}</td>
-                    <td className="px-6 py-4">{pedido.marca}</td>
-                    <td className="px-6 py-4">{pedido.talla}</td>
-                    <td className="px-6 py-4">{pedido.genero}</td>
-                    <td className={`px-6 py-4 ${getRowStatusClass(pedido)}`}>
-                      <div className="space-y-1">
-                        {pedido.faltantes && <span className={styles.textRed}> • Faltante</span>}
-                        {pedido.compradas && <span className={styles.textGreen}> • Comprada</span>}
-                        {pedido.pagadas && <span className={styles.textBlue}> • Pagada</span>}
-                        {pedido.bordada && <span className={styles.textBlue}> • Bordada</span>}
-                        {pedido.entregada && <span className={styles.textGreen}> • Entregada</span>}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
+                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.persona}</td>
+                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.encargadoPor}</td>
+                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>₡{pedido.pago}</td>
+                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.fechaPedido}</td>
+                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.turno}</td>
+                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.empresa}</td>
+                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.colores}</td>
+                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.marca}</td>
+                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.talla}</td>
+                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.genero}</td>
+                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.estado}</td>
+                    <td className="border border-white-300 px-4 py-2">
                       <div className="flex space-x-2">
                         <button
                           onClick={() => startEditing(pedido)}

@@ -46,7 +46,7 @@ const Register = () => {
         placeholder="Password" 
         value={password} 
         onChange={(e) => setPassword(e.target.value)} 
-        className={styles.input}
+        className={styles.input }
       />
       {error && <p className={styles.error}>{error}</p>}
       <button type="submit"className={styles.button}>Registar</button>
