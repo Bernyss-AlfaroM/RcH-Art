@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, firestore } from '../firebaseConfig';
@@ -14,7 +13,8 @@ const DataTableView = () => {
   const [editForm, setEditForm] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [loading, setLoading] = useState(true);
-
+  const [estadoFilter, setEstadoFilter] = useState('Todos'); // Nuevo estado para el filtro
+  
   // Listas predefinidas
   const encargadosList = ["Bernyss", "Brayan", "Stephanie"];
   const generoList = ["Hombre", "Mujer"];
@@ -24,7 +24,7 @@ const DataTableView = () => {
   
   // Lista de estados (nuevo)
   const estadosList = ["Pendiente", "Faltante", "Comprada", "Pagada", "Bordada", "Entregada"];
-
+  
   // Función para formatear fechas
   const [user, setUser] = useState(null);
   const formatDate = (date) => {
@@ -37,9 +37,9 @@ const DataTableView = () => {
     }
     return '';
   };
-
+  
   const router = useRouter();
-
+  
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (!user) {
@@ -50,7 +50,7 @@ const DataTableView = () => {
     });
     return unsubscribe;
   }, [router]);
-
+  
   useEffect(() => {
     const fetchPedidos = async () => {
       try {
@@ -94,7 +94,7 @@ const DataTableView = () => {
     };
     fetchPedidos();
   }, []);
-
+  
   // Nueva función para obtener la clase de estado
   const getEstadoClass = (estado) => {
     switch (estado) {
@@ -107,7 +107,7 @@ const DataTableView = () => {
       default: return '';
     }
   };
-
+  
   // Función para determinar si un estado debe parpadear
   const shouldBlink = (estado) => {
     return estado === 'Pendiente' || estado === 'Faltante';
@@ -126,13 +126,13 @@ const DataTableView = () => {
       }
     }
   };
-
+  
   // Funciones para edición
   const startEditing = (pedido) => {
     setEditingId(pedido.id);
     setEditForm(pedido);
   };
-
+  
   const handleEditChange = (e) => {
     const { name, value } = e.target;
     setEditForm(prev => ({
@@ -140,7 +140,7 @@ const DataTableView = () => {
       [name]: value
     }));
   };
-
+  
   const handleEditSubmit = async () => {
     try {
       const pedidoRef = doc(firestore, 'Ventas', editingId);
@@ -169,7 +169,7 @@ const DataTableView = () => {
       alert('Error al actualizar el pedido');
     }
   };
-
+  
   // Función para ordenar
   const handleSort = (key) => {
     let direction = 'asc';
@@ -177,7 +177,6 @@ const DataTableView = () => {
       direction = 'desc';
     }
     setSortConfig({ key, direction });
-
     const sortedPedidos = [...pedidos].sort((a, b) => {
       if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
       if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
@@ -185,36 +184,69 @@ const DataTableView = () => {
     });
     setPedidos(sortedPedidos);
   };
-
-  // Filtrar pedidos según término de búsqueda
+  
+  // Filtrar pedidos según término de búsqueda y estado seleccionado
   const filteredPedidos = pedidos.filter(pedido => {
-    const searchStr = searchTerm.toLowerCase();
-    return (
-      pedido.persona?.toLowerCase().includes(searchStr) ||
-      pedido.empresa?.toLowerCase().includes(searchStr) ||
-      pedido.encargadoPor?.toLowerCase().includes(searchStr)
-    );
+    const searchMatch = searchTerm ? (
+      pedido.persona?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pedido.empresa?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pedido.encargadoPor?.toLowerCase().includes(searchTerm.toLowerCase())
+    ) : true;
+    
+    // Filtro por estado
+    const estadoMatch = estadoFilter === 'Todos' || pedido.estado === estadoFilter;
+    
+    return searchMatch && estadoMatch;
   });
-
+  
+  // Manejar cambio de filtro por estado
+  const handleEstadoFilterChange = (e) => {
+    setEstadoFilter(e.target.value);
+  };
+  
   if (loading) {
     return <div className={styles.loadingContainer}>Cargando datos...</div>;
   }
-
+  
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">Lista de Pedidos</h2>
       
-      {/* Barra de búsqueda */}
-      <div className="mb-4">
+      {/* Barra de búsqueda y filtros */}
+      <div className="mb-4 flex flex-col md:flex-row md:items-center gap-4">
         <input
           type="text"
           placeholder="Buscar por persona, empresa o encargado..."
-          className={styles.dataTableSearch}
+          className={`${styles.dataTableSearch} flex-grow`}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
+        
+        {/* Filtro por estado */}
+        <div className="flex items-center">
+          <label htmlFor="estadoFilter" className="mr-2 font-medium">Filtrar por estado:</label>
+          <select
+            id="estadoFilter"
+            value={estadoFilter}
+            onChange={handleEstadoFilterChange}
+            className={`${styles.formSelect} min-w-[150px]`}
+          >
+            <option value="Todos">Todos</option>
+            {estadosList.map(estado => (
+              <option key={estado} value={estado}>{estado}</option>
+            ))}
+          </select>
+        </div>
       </div>
-
+      
+      {/* Contador de resultados */}
+      <div className="mb-4">
+        <p className="text-gray-600">
+          Mostrando {filteredPedidos.length} de {pedidos.length} pedidos
+          {estadoFilter !== 'Todos' ? ` (filtrado por: ${estadoFilter})` : ''}
+        </p>
+      </div>
+      
       {/* Tabla de datos */}
       <div className={styles.dataTableContainer}>
         <table className={styles.dataTable}>
@@ -238,178 +270,185 @@ const DataTableView = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredPedidos.map((pedido) => (
-              <tr key={pedido.id} className={styles.dataTableRow}>
-
-                {editingId === pedido.id ? (
-                  <>
-                    <td className={`px-6 py-4 ${getEstadoClass(editForm.estado)}`}>
-                      <input
-                        type="text"
-                        name="persona"
-                        value={editForm.persona}
-                        onChange={handleEditChange}
-                        className={`${styles.formInput} ${shouldBlink(editForm.estado) ? styles.blinkAnimation : ''}`}
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <select
-                        name="encargadoPor"
-                        value={editForm.encargadoPor}
-                        onChange={handleEditChange}
-                        className={styles.formSelect}
-                      >
-                        {encargadosList.map(enc => (
-                          <option key={enc} value={enc}>{enc}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-6 py-4">
-                      <input
-                        type="number"
-                        name="pago"
-                        value={editForm.pago}
-                        onChange={handleEditChange}
-                        className={styles.formInput}
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <input
-                        type="date"
-                        name="fechaPedido"
-                        value={editForm.fechaPedido}
-                        onChange={handleEditChange}
-                        className={styles.formInput}
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <select
-                        name="turno"
-                        value={editForm.turno}
-                        onChange={handleEditChange}
-                        className={styles.formSelect}
-                      >
-                        {turnoList.map(turno => (
-                          <option key={turno} value={turno}>{turno}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-6 py-4">
-                      <input
-                        type="text"
-                        name="empresa"
-                        value={editForm.empresa}
-                        onChange={handleEditChange}
-                        className={styles.formInput}
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <input
-                        type="text"
-                        name="colores"
-                        value={editForm.colores}
-                        onChange={handleEditChange}
-                        className={styles.formInput}
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <select
-                        name="marca"
-                        value={editForm.marca}
-                        onChange={handleEditChange}
-                        className={styles.formSelect}
-                      >
-                        {marcaList.map(marca => (
-                          <option key={marca} value={marca}>{marca}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-6 py-4">
-                      <select
-                        name="talla"
-                        value={editForm.talla}
-                        onChange={handleEditChange}
-                        className={styles.formSelect}
-                      >
-                        {tallaList.map(talla => (
-                          <option key={talla} value={talla}>{talla}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-6 py-4">
-                      <select
-                        name="genero"
-                        value={editForm.genero}
-                        onChange={handleEditChange}
-                        className={styles.formSelect}
-                      >
-                        {generoList.map(genero => (
-                          <option key={genero} value={genero}>{genero}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className={`px-6 py-4 ${getEstadoClass(editForm.estado)} ${shouldBlink(editForm.estado) ? styles.blinkAnimation : ''}`}>
-                      <select
-                        name="estado"
-                        value={editForm.estado}
-                        onChange={handleEditChange}
-                        className={styles.formSelect}
-                      >
-                        {estadosList.map(estado => (
-                          <option key={estado} value={estado}>{estado}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={handleEditSubmit}
-                          className={`${styles.button} ${styles.buttonGreen}`}
+            {filteredPedidos.length > 0 ? (
+              filteredPedidos.map((pedido) => (
+                <tr key={pedido.id} className={styles.dataTableRow}>
+                  {editingId === pedido.id ? (
+                    <>
+                      <td className={`px-6 py-4 ${getEstadoClass(editForm.estado)}`}>
+                        <input
+                          type="text"
+                          name="persona"
+                          value={editForm.persona}
+                          onChange={handleEditChange}
+                          className={`${styles.formInput} ${shouldBlink(editForm.estado) ? styles.blinkAnimation : ''}`}
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <select
+                          name="encargadoPor"
+                          value={editForm.encargadoPor}
+                          onChange={handleEditChange}
+                          className={styles.formSelect}
                         >
-                          Guardar
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className={`${styles.button} ${styles.buttonGray}`}
+                          {encargadosList.map(enc => (
+                            <option key={enc} value={enc}>{enc}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-6 py-4">
+                        <input
+                          type="number"
+                          name="pago"
+                          value={editForm.pago}
+                          onChange={handleEditChange}
+                          className={styles.formInput}
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <input
+                          type="date"
+                          name="fechaPedido"
+                          value={editForm.fechaPedido}
+                          onChange={handleEditChange}
+                          className={styles.formInput}
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <select
+                          name="turno"
+                          value={editForm.turno}
+                          onChange={handleEditChange}
+                          className={styles.formSelect}
                         >
-                          Cancelar
-                        </button>
-                      </div>
-                    </td>
-                  </>
-                ) : (
-                  <>
-                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.persona}</td>
-                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.encargadoPor}</td>
-                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>₡{pedido.pago}</td>
-                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.fechaPedido}</td>
-                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.turno}</td>
-                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.empresa}</td>
-                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.colores}</td>
-                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.marca}</td>
-                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.talla}</td>
-                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.genero}</td>
-                    <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.estado}</td>
-                    <td className="border border-white-300 px-4 py-2">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => startEditing(pedido)}
-                          className={`${styles.button} ${styles.buttonBlue}`}
+                          {turnoList.map(turno => (
+                            <option key={turno} value={turno}>{turno}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-6 py-4">
+                        <input
+                          type="text"
+                          name="empresa"
+                          value={editForm.empresa}
+                          onChange={handleEditChange}
+                          className={styles.formInput}
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <input
+                          type="text"
+                          name="colores"
+                          value={editForm.colores}
+                          onChange={handleEditChange}
+                          className={styles.formInput}
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <select
+                          name="marca"
+                          value={editForm.marca}
+                          onChange={handleEditChange}
+                          className={styles.formSelect}
                         >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleDelete(pedido.id)}
-                          className={`${styles.button} ${styles.buttonRed}`}
+                          {marcaList.map(marca => (
+                            <option key={marca} value={marca}>{marca}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-6 py-4">
+                        <select
+                          name="talla"
+                          value={editForm.talla}
+                          onChange={handleEditChange}
+                          className={styles.formSelect}
                         >
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </>
-                )}
+                          {tallaList.map(talla => (
+                            <option key={talla} value={talla}>{talla}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-6 py-4">
+                        <select
+                          name="genero"
+                          value={editForm.genero}
+                          onChange={handleEditChange}
+                          className={styles.formSelect}
+                        >
+                          {generoList.map(genero => (
+                            <option key={genero} value={genero}>{genero}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className={`px-6 py-4 ${getEstadoClass(editForm.estado)} ${shouldBlink(editForm.estado) ? styles.blinkAnimation : ''}`}>
+                        <select
+                          name="estado"
+                          value={editForm.estado}
+                          onChange={handleEditChange}
+                          className={styles.formSelect}
+                        >
+                          {estadosList.map(estado => (
+                            <option key={estado} value={estado}>{estado}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={handleEditSubmit}
+                            className={`${styles.button} ${styles.buttonGreen}`}
+                          >
+                            Guardar
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className={`${styles.button} ${styles.buttonGray}`}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.persona}</td>
+                      <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.encargadoPor}</td>
+                      <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>₡{pedido.pago}</td>
+                      <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.fechaPedido}</td>
+                      <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.turno}</td>
+                      <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.empresa}</td>
+                      <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.colores}</td>
+                      <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.marca}</td>
+                      <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.talla}</td>
+                      <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.genero}</td>
+                      <td className={`border border-white-300 px-4 py-2 ${getEstadoClass(pedido.estado)} ${shouldBlink(pedido.estado) ? styles.blinkAnimation : ''}`}>{pedido.estado}</td>
+                      <td className="border border-white-300 px-4 py-2">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => startEditing(pedido)}
+                            className={`${styles.button} ${styles.buttonBlue}`}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleDelete(pedido.id)}
+                            className={`${styles.button} ${styles.buttonRed}`}
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="12" className="px-6 py-4 text-center text-gray-500">
+                  No se encontraron pedidos con los filtros seleccionados
+                </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
