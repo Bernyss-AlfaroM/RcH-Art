@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, firestore } from '../firebaseConfig';
 import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
@@ -13,7 +13,14 @@ const DataTableView = () => {
   const [editForm, setEditForm] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [loading, setLoading] = useState(true);
-  const [estadoFilter, setEstadoFilter] = useState('Todos'); // Nuevo estado para el filtro
+  const [estadoFilter, setEstadoFilter] = useState('Todos');
+  
+  // Estados para la selección de celdas
+  const [selectedItems, setSelectedItems] = useState({});
+  const [selectAll, setSelectAll] = useState(false);
+  
+  // Ref para el textarea oculto que usaremos para copiar
+  const textAreaRef = useRef(null);
   
   // Listas predefinidas
   const encargadosList = ["Bernyss", "Brayan", "Stephanie"];
@@ -22,7 +29,7 @@ const DataTableView = () => {
   const turnoList = ["A", "B", "C"];
   const tallaList = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"];
   
-  // Lista de estados (nuevo)
+  // Lista de estados
   const estadosList = ["Pendiente", "Faltante", "Comprada", "Pagada", "Bordada", "Entregada"];
   
   // Función para formatear fechas
@@ -71,7 +78,7 @@ const DataTableView = () => {
             id: doc.id,
             ...data,
             fechaPedido: formatDate(data.fechaPedido),
-            estado: data.estado || estado, // Usar el nuevo campo estado o derivarlo
+            estado: data.estado || estado,
             persona: data.persona || '',
             encargadoPor: data.encargadoPor || encargadosList[0],
             pago: data.pago || '',
@@ -204,6 +211,51 @@ const DataTableView = () => {
     setEstadoFilter(e.target.value);
   };
   
+  // Función para manejar la selección de un item
+  const toggleSelectItem = (id) => {
+    setSelectedItems(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+  
+  // Función para seleccionar/deseleccionar todos los items
+  const toggleSelectAll = () => {
+    const newSelectAll = !selectAll;
+    setSelectAll(newSelectAll);
+    
+    const newSelectedItems = {};
+    filteredPedidos.forEach(pedido => {
+      newSelectedItems[pedido.id] = newSelectAll;
+    });
+    
+    setSelectedItems(newSelectedItems);
+  };
+  
+  // Función para copiar los datos seleccionados
+  const copySelectedItems = () => {
+    // Obtener los items seleccionados
+    const selectedPedidos = filteredPedidos.filter(pedido => selectedItems[pedido.id]);
+    
+    if (selectedPedidos.length === 0) {
+      alert('Por favor selecciona al menos un pedido para copiar');
+      return;
+    }
+    
+    // Formatear los datos en el orden especificado: color, marca, talla y género
+    const copyText = selectedPedidos.map(pedido => 
+      `${pedido.colores},${pedido.marca},${pedido.talla},${pedido.genero}`
+    ).join('\n');
+    
+    // Copiar al portapapeles
+    if (textAreaRef.current) {
+      textAreaRef.current.value = copyText;
+      textAreaRef.current.select();
+      document.execCommand('copy');
+      alert(`${selectedPedidos.length} pedidos copiados al portapapeles`);
+    }
+  };
+  
   if (loading) {
     return <div className={styles.loadingContainer}>Cargando datos...</div>;
   }
@@ -239,19 +291,50 @@ const DataTableView = () => {
         </div>
       </div>
       
-      {/* Contador de resultados */}
-      <div className="mb-4">
+      {/* Contador de resultados y botones de acción */}
+      <div className="mb-4 flex justify-between items-center">
         <p className="text-gray-600">
           Mostrando {filteredPedidos.length} de {pedidos.length} pedidos
           {estadoFilter !== 'Todos' ? ` (filtrado por: ${estadoFilter})` : ''}
         </p>
+        
+        {/* Botones para seleccionar todos y copiar */}
+        <div className="flex space-x-2">
+          <button
+            onClick={toggleSelectAll}
+            className={`${styles.button} ${styles.buttonBlue}`}
+          >
+            {selectAll ? 'Deseleccionar Todos' : 'Seleccionar Todos'}
+          </button>
+          <button
+            onClick={copySelectedItems}
+            className={`${styles.button} ${styles.buttonGreen}`}
+          >
+            Copiar Seleccionados
+          </button>
+        </div>
       </div>
+      
+      {/* TextArea oculto para copiar */}
+      <textarea 
+        ref={textAreaRef}
+        style={{ position: 'absolute', left: '-9999px' }}
+        readOnly
+      />
       
       {/* Tabla de datos */}
       <div className={styles.dataTableContainer}>
         <table className={styles.dataTable}>
           <thead className={styles.dataTableHeader}>
             <tr>
+              <th className="px-4 py-2">
+                <input
+                  type="checkbox"
+                  checked={selectAll}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4"
+                />
+              </th>
               {[
                 'Persona', 'Encargado', 'Pago', 'Fecha', 'Turno', 'Empresa',
                 'Colores', 'Marca', 'Talla', 'Género', 'Estado', 'Acciones'
@@ -273,6 +356,14 @@ const DataTableView = () => {
             {filteredPedidos.length > 0 ? (
               filteredPedidos.map((pedido) => (
                 <tr key={pedido.id} className={styles.dataTableRow}>
+                  <td className="px-4 py-2 text-center">
+                    <input
+                      type="checkbox"
+                      checked={!!selectedItems[pedido.id]}
+                      onChange={() => toggleSelectItem(pedido.id)}
+                      className="h-4 w-4"
+                    />
+                  </td>
                   {editingId === pedido.id ? (
                     <>
                       <td className={`px-6 py-4 ${getEstadoClass(editForm.estado)}`}>
@@ -444,7 +535,7 @@ const DataTableView = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="12" className="px-6 py-4 text-center text-gray-500">
+                <td colSpan="13" className="px-6 py-4 text-center text-gray-500">
                   No se encontraron pedidos con los filtros seleccionados
                 </td>
               </tr>

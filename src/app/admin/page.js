@@ -11,6 +11,7 @@ export default function AdminPanel() {
   // Predefined lists
   const lists = {
     encargados: ["Bernyss", "Brayan", "Stephanie"],
+    empresas: ["Boston", "Abbott", "HOLOGIC", "Custom"],
     generos: ["Hombre", "Mujer"],
     marcas: ["Okey", "Columbia", "Unicreses"],
     turnos: ["A", "B", "C"],
@@ -42,7 +43,36 @@ export default function AdminPanel() {
       "Blanca",
       "Morado Uni",
       "Coral"
-    ]
+    ],
+    // Map de colores a valores hexadecimales
+    colorHexMap: {
+      "Vino": "#722F37",
+      "Vino tinto": "#5E1224",
+      "Celeste Unicress": "#A5D8DD",
+      "Celeste Ok": "#89CFF0",
+      "Rosado Uni": "#FFC0CB",
+      "Fuscia OK": "#FF00FF",
+      "Fuscia Morado": "#CC33CC",
+      "Fuscia Uni": "#FF66FF",
+      "Morado": "#800080",
+      "Lila": "#C8A2C8",
+      "Negra": "#000000",
+      "Gris Claro": "#D3D3D3",
+      "Gris Oscuro": "#696969",
+      "Amarillo": "#FFFF00",
+      "Verde Oscuro": "#006400",
+      "Verde Claro": "#90EE90",
+      "Rojo": "#FF0000",
+      "Azul Navi": "#000080",
+      "Azul Rey": "#4169E1",
+      "Naranja": "#FFA500",
+      "Turquesa": "#40E0D0",
+      "Jade": "#00A36C",
+      "Beige": "#F5F5DC",
+      "Blanca": "#FFFFFF",
+      "Morado Uni": "#9370DB",
+      "Coral": "#FF7F50"
+    }
   };
 
   const [user, setUser] = useState(null);
@@ -52,8 +82,8 @@ export default function AdminPanel() {
     pago: '',
     fechaPedido: '',
     turno: lists.turnos[0],
-    empresa: '',
-    colores:lists.colores[0], // Explicitly added colors field
+    empresa: lists.empresas[0],
+    colores: lists.colores[0],
     marca: lists.marcas[0],
     talla: lists.tallas[0],
     genero: lists.generos[0],
@@ -126,6 +156,7 @@ export default function AdminPanel() {
             key === 'marca' ? [key, lists.marcas[0]] :
             key === 'talla' ? [key, lists.tallas[0]] :
             key === 'genero' ? [key, lists.generos[0]] :
+            key === 'colores' ? [key, lists.colores[0]] :
             typeof val === 'boolean' ? [key, false] :
             [key, '']
           )
@@ -142,6 +173,56 @@ export default function AdminPanel() {
     }
   };
 
+  // Componente personalizado para el selector de colores
+  const ColorSelector = () => {
+    const [isOpen, setIsOpen] = useState(false);
+    
+    return (
+      <div className="relative">
+        <label htmlFor="colores" className={styles['form-label']}>
+          Colores
+        </label>
+        
+        <div 
+          className="flex items-center cursor-pointer p-2 border rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <div 
+            className="w-6 h-6 mr-2 border border-gray-300 rounded" 
+            style={{ backgroundColor: lists.colorHexMap[formData.colores] || '#FFFFFF' }}
+          />
+          <span className="text-sm">{formData.colores}</span>
+          <svg className="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </div>
+        
+        {isOpen && (
+          <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+            <div className="grid grid-cols-4 gap-2 p-2">
+              {lists.colores.map((color) => (
+                <div 
+                  key={color} 
+                  className="flex flex-col items-center cursor-pointer p-1 hover:bg-gray-100 rounded"
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, colores: color }));
+                    setIsOpen(false);
+                  }}
+                >
+                  <div 
+                    className="w-8 h-8 border border-gray-300 rounded-sm mb-1" 
+                    style={{ backgroundColor: lists.colorHexMap[color] || '#FFFFFF' }}
+                  />
+                  <span className="text-xs text-center">{color}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles['form-section']}>
@@ -149,10 +230,9 @@ export default function AdminPanel() {
         
         {user ? (
           <>
-            
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className={styles['form-grid']}>
-                {/* Static fields including Colores */}
+                {/* Static fields */}
                 <div>
                   <label htmlFor="persona" className={styles['form-label']}>
                     Persona
@@ -237,37 +317,23 @@ export default function AdminPanel() {
                   <label htmlFor="empresa" className={styles['form-label']}>
                     Empresa
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="empresa"
                     value={formData.empresa}
                     onChange={handleInputChange}
                     className={styles['form-input']}
                     required
-                  />
-                </div>
-
-                {/* Explicitly added Colores field */}
-                <div>
-                  <label htmlFor="colores" className={styles['form-label']}>
-                    Colores
-                  </label>
-
-                  <select
-                    type="text"
-                    name="colores"
-                    value={formData.colores}
-                    onChange={handleInputChange}
-                    className={styles['form-input']}
-                    required
-                    >
-                    {lists.colores.map((colores) => (
-                      <option key={colores} value={colores}>
-                        {colores}
+                  >
+                    {lists.empresas.map((empresas) => (
+                      <option key={empresas} value={empresas}>
+                        {empresas}
                       </option>
                     ))}
                   </select>
                 </div>
+
+                {/* Custom color selector component */}
+                <ColorSelector />
 
                 <div>
                   <label htmlFor="marca" className={styles['form-label']}>
@@ -365,13 +431,6 @@ export default function AdminPanel() {
                 Registrar Pedido
               </button>
             </form>
-{/*
-            <div className={styles['sales-summary']}>
-              <h3 className={styles['sales-total']}>
-                Total de Ventas: ${totalVentas.toLocaleString()}
-              </h3>
-            </div>
-*/}
           </>
         ) : (
           <p className="text-center text-gray-500">Cargando...</p>
